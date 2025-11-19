@@ -124,16 +124,18 @@ function playGame(gameId) {
 
 function loadGameContent(gameId) {
   const container = document.getElementById('game-content');
+  container.innerHTML = ''; // Clear previous content
 
-  // For now, show a placeholder for each game
-  // In a full implementation, each game would be a separate module
-  container.innerHTML = `
-    <div class="game-placeholder">
-      <p>Game: ${gameId}</p>
-      <p>This game is ready to be implemented!</p>
-      <p>The game framework is in place for easy expansion.</p>
-    </div>
-  `;
+  // Create game instance using the game engine
+  const game = createGame(gameId);
+
+  if (!game) {
+    container.innerHTML = `
+      <div class="game-placeholder">
+        <p>Game not found: ${gameId}</p>
+      </div>
+    `;
+  }
 }
 
 function populateGameSelect() {

@@ -1,0 +1,10 @@
+node_modules/
+package-lock.json
+.env
+games.db
+*.db
+.DS_Store
+*.log
+npm-debug.log
+dist/
+build/

@@ -78,6 +78,14 @@ body {
   color: white !important;
 }
 
+.username-display {
+  color: var(--text-light);
+  font-weight: 500;
+  padding: 0 15px;
+  display: flex;
+  align-items: center;
+}
+
 /* Screen Management */
 .screen {
   display: none;
@@ -178,6 +186,41 @@ body {
   margin-top: -10px;
   margin-bottom: 10px;
   min-height: 20px;
+}
+
+.guest-option {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+
+.divider {
+  color: var(--text-light);
+  font-size: 13px;
+  margin-bottom: 15px;
+}
+
+.btn-guest {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  width: 100%;
+  font-size: 14px;
+  padding: 12px 24px;
+  margin-bottom: 10px;
+}
+
+.btn-guest:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.guest-info {
+  color: var(--text-light);
+  font-size: 12px;
+  line-height: 1.5;
+  margin-top: 10px;
 }
 
 /* Button Styles */

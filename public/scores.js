@@ -6,6 +6,13 @@ async function submitScore(gameId, score, moves, time) {
       throw new Error('Must be logged in to submit score');
     }
 
+    // For guest users, save locally
+    if (auth.isGuestUser()) {
+      auth.saveGuestScore(gameId, Math.floor(score), moves ? Math.floor(moves) : null, time ? Math.floor(time) : null);
+      return { success: true, isGuest: true };
+    }
+
+    // For registered users, submit to API
     const response = await fetch(`${API_URL}/scores`, {
       method: 'POST',
       headers: auth.getAuthHeader(),
@@ -31,6 +38,14 @@ async function submitScore(gameId, score, moves, time) {
 }
 
 async function loadLeaderboards() {
+  if (auth.isGuestUser()) {
+    document.getElementById('global-leaderboard-list').innerHTML =
+      '<p style="text-align: center; color: #888; padding: 20px;">Leaderboards are available for registered players. <a href="#" onclick="showScreen(\'games-screen\')">Register or Login</a> to access leaderboards.</p>';
+    document.getElementById('game-leaderboard-list').innerHTML =
+      '<p style="text-align: center; color: #888; padding: 20px;">Leaderboards are available for registered players.</p>';
+    return;
+  }
+
   loadGlobalLeaderboard();
   loadGameLeaderboard();
 }
@@ -119,6 +134,19 @@ async function loadProfile() {
       return;
     }
 
+    // For guest users, show local profile
+    if (auth.isGuestUser()) {
+      displayProfile({
+        username: auth.username,
+        gamesPlayed: Object.keys(auth.guestScores).length,
+        totalScores: Object.values(auth.guestScores).reduce((sum, scores) => sum + scores.length, 0),
+        avgScore: calculateGuestAverage()
+      });
+      loadUserScoresGuest();
+      return;
+    }
+
+    // For registered users, fetch from API
     const response = await fetch(`${API_URL}/users/${auth.userId}`);
     if (!response.ok) throw new Error('Failed to load profile');
 
@@ -130,11 +158,38 @@ async function loadProfile() {
   }
 }
 
+function calculateGuestAverage() {
+  const allScores = Object.values(auth.guestScores).flat().map(s => s.score);
+  if (allScores.length === 0) return 0;
+  return allScores.reduce((sum, score) => sum + score, 0) / allScores.length;
+}
+
 function displayProfile(profile) {
   document.getElementById('profile-username').textContent = profile.username;
   document.getElementById('profile-games').textContent = profile.gamesPlayed || 0;
   document.getElementById('profile-scores').textContent = profile.totalScores || 0;
   document.getElementById('profile-avg').textContent = profile.avgScore ? Math.round(profile.avgScore) : 0;
+}
+
+function loadUserScoresGuest() {
+  const allScores = [];
+  for (const [gameId, scores] of Object.entries(auth.guestScores)) {
+    const gameName = GAME_CONFIGS.find(g => g.id === gameId)?.name || gameId;
+    scores.forEach(score => {
+      allScores.push({
+        gameId,
+        name: gameName,
+        score: score.score,
+        moves: score.moves,
+        time: score.time,
+        date: score.date
+      });
+    });
+  }
+
+  // Sort by date descending
+  allScores.sort((a, b) => new Date(b.date) - new Date(a.date));
+  displayUserScores(allScores);
 }
 
 async function loadUserScores() {

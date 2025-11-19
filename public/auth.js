@@ -6,10 +6,27 @@ class Auth {
     this.token = localStorage.getItem('token');
     this.userId = localStorage.getItem('userId');
     this.username = localStorage.getItem('username');
+    this.isGuest = localStorage.getItem('isGuest') === 'true';
+    this.guestScores = JSON.parse(localStorage.getItem('guestScores') || '{}');
   }
 
   isLoggedIn() {
-    return !!this.token;
+    return !!this.token || this.isGuest;
+  }
+
+  isGuestUser() {
+    return this.isGuest;
+  }
+
+  playAsGuest() {
+    this.isGuest = true;
+    this.userId = 'guest-' + Date.now();
+    this.username = 'Guest Player';
+    this.token = null;
+    localStorage.setItem('isGuest', 'true');
+    localStorage.setItem('userId', this.userId);
+    localStorage.setItem('username', this.username);
+    localStorage.removeItem('token');
   }
 
   async register(username, email, password) {
@@ -26,7 +43,7 @@ class Auth {
       }
 
       const data = await response.json();
-      this.setAuth(data.token, data.userId, data.username);
+      this.setAuth(data.token, data.userId, data.username, false);
       return data;
     } catch (error) {
       console.error('Register error:', error);
@@ -48,7 +65,7 @@ class Auth {
       }
 
       const data = await response.json();
-      this.setAuth(data.token, data.userId, data.username);
+      this.setAuth(data.token, data.userId, data.username, false);
       return data;
     } catch (error) {
       console.error('Login error:', error);
@@ -56,22 +73,45 @@ class Auth {
     }
   }
 
-  setAuth(token, userId, username) {
+  setAuth(token, userId, username, isGuest = false) {
     this.token = token;
     this.userId = userId;
     this.username = username;
-    localStorage.setItem('token', token);
+    this.isGuest = isGuest;
+    localStorage.setItem('token', token || '');
     localStorage.setItem('userId', userId);
     localStorage.setItem('username', username);
+    localStorage.setItem('isGuest', isGuest.toString());
   }
 
   logout() {
     this.token = null;
     this.userId = null;
     this.username = null;
+    this.isGuest = false;
+    this.guestScores = {};
     localStorage.removeItem('token');
     localStorage.removeItem('userId');
     localStorage.removeItem('username');
+    localStorage.removeItem('isGuest');
+    localStorage.removeItem('guestScores');
+  }
+
+  saveGuestScore(gameId, score, moves, time) {
+    if (!this.guestScores[gameId]) {
+      this.guestScores[gameId] = [];
+    }
+    this.guestScores[gameId].push({
+      score,
+      moves,
+      time,
+      date: new Date().toISOString()
+    });
+    localStorage.setItem('guestScores', JSON.stringify(this.guestScores));
+  }
+
+  getGuestScores(gameId) {
+    return this.guestScores[gameId] || [];
   }
 
   getAuthHeader() {
@@ -90,6 +130,7 @@ function setupAuthUI() {
   const loginForm = document.getElementById('login-form');
   const registerForm = document.getElementById('register-form');
   const authTabs = document.querySelectorAll('.auth-tab-btn');
+  const guestBtn = document.getElementById('guest-btn');
 
   // Tab switching
   authTabs.forEach(tab => {
@@ -148,6 +189,17 @@ function setupAuthUI() {
     }
   });
 
+  // Guest handler
+  if (guestBtn) {
+    guestBtn.addEventListener('click', () => {
+      auth.playAsGuest();
+      hideScreen('auth-screen');
+      showScreen('games-screen');
+      loadGames();
+      updateNavbar();
+    });
+  }
+
   // Logout handler
   document.getElementById('logout-btn').addEventListener('click', () => {
     auth.logout();
@@ -166,10 +218,14 @@ function setupAuthUI() {
 function updateNavbar() {
   const navbar = document.querySelector('.navbar');
   const logoutBtn = document.getElementById('logout-btn');
+  const usernameDisplay = document.getElementById('username-display');
 
   if (auth.isLoggedIn()) {
     navbar.style.display = 'block';
     logoutBtn.style.display = 'inline-block';
+    if (usernameDisplay) {
+      usernameDisplay.textContent = auth.isGuest ? '👤 Guest' : `👤 ${auth.username}`;
+    }
   } else {
     navbar.style.display = 'none';
     logoutBtn.style.display = 'none';
